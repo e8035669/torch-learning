@@ -9,6 +9,16 @@ from mlflow.utils import PYTHON_VERSION
 from mlflow.utils.file_utils import TempDir
 from mlflow.utils.environment import _mlflow_conda_env
 
+def get_pytorch_env_patch():
+    e = mlflow.pytorch.get_default_conda_env()
+    e['channels'].append('pytorch')
+    e['dependencies'].extend(['pytorch', 'torchvision', 'torchaudio', 'cudatoolkit=11.3'])
+    find_pip = tuple(filter(lambda p: isinstance(p, dict) and 'pip' in p, e['dependencies']))
+    find_torch = tuple(filter(lambda p: 'torch' in p, find_pip[0]['pip']))
+    for p in find_torch:
+        find_pip[0]['pip'].remove(p)
+    return e
+
 def save_pytorch_model(pytorch_model, artifact_path, image_dims, domain):
     with TempDir() as tmp:
         data_path = tmp.path('image_model')
@@ -20,10 +30,10 @@ def save_pytorch_model(pytorch_model, artifact_path, image_dims, domain):
         with open(os.path.join(data_path, 'conf.yaml'), 'w') as f:
             yaml.safe_dump(conf, stream=f)
         torch_path = os.path.join(data_path, 'torch_model')
-        mlflow.pytorch.save_model(pytorch_model, path=torch_path)
+        mlflow.pytorch.save_model(pytorch_model, path=torch_path, conda_env=get_pytorch_env_patch())
         conda_env = tmp.path('conda_env.yaml')
         with open(conda_env, 'w') as f:
-            yaml.safe_dump(mlflow.pytorch.get_default_conda_env(), stream=f)
+            yaml.safe_dump(get_pytorch_env_patch(), stream=f)
             
         mlflow.pyfunc.save_model(
             artifact_path,
@@ -42,7 +52,10 @@ def _load_pyfunc(path):
     model_path = os.path.join(path, 'torch_model')
     print('model_path', model_path)
     
-    net = mlflow.pytorch.load_model(model_path)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('device', device)
+    
+    net = mlflow.pytorch.load_model(model_path, device=device)
     print(net)
     
     return net
