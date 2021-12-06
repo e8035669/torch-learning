@@ -1,7 +1,12 @@
+from io import BytesIO
 import os
 import base64
 import yaml
 import torch
+import torchvision
+import torchvision.transforms as T
+
+from PIL import Image
 
 import mlflow
 import mlflow.keras
@@ -34,7 +39,7 @@ def save_pytorch_model(pytorch_model, artifact_path, image_dims, domain):
         conda_env = tmp.path('conda_env.yaml')
         with open(conda_env, 'w') as f:
             yaml.safe_dump(get_pytorch_env_patch(), stream=f)
-            
+
         mlflow.pyfunc.save_model(
             artifact_path,
             loader_module=__name__,
@@ -43,20 +48,41 @@ def save_pytorch_model(pytorch_model, artifact_path, image_dims, domain):
             conda_env=conda_env
         )
 
+class PytorchClassifierWrapper:
+    def __init__(self, model, device):
+        self.model = model
+        self.device = device
+
+
+    def predict(self, x):
+        print(type(x))
+        print(x)
+
+        datas = base64.decodebytes(bytearray(x[0], encoding='utf-8'))
+        fd = ByteIO(datas)
+        img = Image.open(fd)
+
+        print(img.shape)
+        pass
+
+
+
+
+
 def _load_pyfunc(path):
     print('path', path)
     with open(os.path.join(path, 'conf.yaml'), 'r') as f:
         conf = yaml.safe_load(f)
     print('conf', conf)
-    
+
     model_path = os.path.join(path, 'torch_model')
     print('model_path', model_path)
-    
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('device', device)
-    
-    net = mlflow.pytorch.load_model(model_path, device=device)
+
+    net = mlflow.pytorch.load_model(model_path, map_location=device)
     print(net)
-    
+
     return net
 

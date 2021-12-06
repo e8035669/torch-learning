@@ -1,0 +1,8 @@
+#!/bin/bash
+
+proxy=${http_proxy}
+if [ -n "${proxy}" ]; then
+    p_export="export http_proxy=${proxy} https_proxy=${proxy} &&"
+fi
+
+sudo docker run -it -v ${PWD}/model:/app/model -p 5000:5000 continuumio/miniconda3 bash -c "${p_export} pip install mlflow && mlflow models serve -m /app/model -p 5000 -h 0.0.0.0"
