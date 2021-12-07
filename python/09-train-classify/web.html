@@ -9,18 +9,8 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 
         <title>Hello, world!</title>
+        <script src="web.js"></script>
     </head>
-    <script>
-
-        function file_selected() {
-            let img = document.getElementById('selected-image');
-            let file = document.getElementById('file-input').files[0];
-            let url = URL.createObjectURL(file);
-            console.log(url);
-            img.src = url;
-        }
-
-    </script>
     <body>
         <div class="col-lg-8 mx-auto p-3 py-md-5">
             <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
@@ -32,12 +22,14 @@
                 <h1>Classification Model</h1>
                 <p class="fs-5 col-md-8">Upload image to inference</p>
 
-                <img src="" id="selected-image" class="img-fluid" alt="">
-                <div class="mb-5">
-                    <button type="button" class="btn btn-primary btn-lg px-4" onclick="document.getElementById('file-input').click();">Select file</button>
-                    <input id="file-input" type="file" name="name" style="display: none;" onchange="file_selected();" />
+                <div id="img-display" style="display: none">
+                    <img src="#" id="selected-image" class="img-thumbnail" style="height: 200px" alt="">
                 </div>
 
+                <div class="mb-5">
+                    <button type="button" class="btn btn-primary btn-lg px-4" onclick="document.getElementById('file-input').click();">Select file</button>
+                    <input id="file-input" type="file" name="name" style="display: none;" accept="image/png, image/jpeg" onchange="file_selected();" />
+                </div>
             </main>
 
         </div>
