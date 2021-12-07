@@ -14,7 +14,7 @@ async function file_selected(e) {
     let base64_part = image_base64.slice(base64_part_index);
     // console.log(base64_part);
 
-    let infer_url = "http://localhost:5000/invocations";
+    let infer_url = "/invocations";
     var data = [
         { "image": base64_part }
     ];
@@ -26,9 +26,17 @@ async function file_selected(e) {
             'Content-Type': 'application/json; format=pandas-records'
         })
     }).then(res => res.json())
-        .catch(error => console.error('Error:', error))
-        .then(response => console.log('Success', response));
-
+        .catch(error => {
+            let result_elem = document.getElementById('predict-result');
+            result_elem.innerHTML = 'Predict Error';
+        })
+        .then(r => {
+            let result_elem = document.getElementById('predict-result');
+            let detail_elem = document.getElementById('predict-detail');
+            result_elem.innerHTML = 'Predict: '.concat(r[0]['cls_name']);
+            detail_elem.innerHTML = JSON.stringify(r[0], null, 4);
+            console.log(JSON.stringify(r[0], null, 4));
+        });
 }
 
 function toBase64(file) {

@@ -3,6 +3,7 @@ import os
 import base64
 import yaml
 import torch
+import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as T
 
@@ -80,13 +81,24 @@ class PytorchClassifierWrapper:
         x = torch.cat([torch.unsqueeze(self.transforms(img), 0) for img in x])
         print(x.shape)
 
-        y = self.model(x)
+        with torch.no_grad():
+            y = self.model(x)
+            y = F.softmax(y, 1)
+            conf, cls = y.max(1)
 
-        result = torch.argmax(y, dim=1)
-        cls = [self.labels[r] for r in result]
-        print(cls)
+        conf = conf.numpy()
+        cls = cls.numpy()
+        cls_name = [ self.labels[i] if i < len(self.labels) else "" for i in cls]
 
-        return result.numpy()
+        result = [{
+            "conf": c,
+            "cls": l,
+            "cls_name": n
+        } for c, l, n in zip(conf, cls, cls_name)]
+
+        print(result)
+
+        return result
 
 def _load_pyfunc(path):
     print('path', path)
