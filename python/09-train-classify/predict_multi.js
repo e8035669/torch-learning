@@ -4,6 +4,7 @@ async function file_selected() {
     console.log('files', files)
 
     try {
+        display_loading();
         let input_data = await prepare_data(files);
         console.log(input_data);
 
@@ -33,6 +34,7 @@ async function file_selected() {
 
     } catch (e) {
         console.log('Error', e);
+        display_error(e);
     }
 }
 
@@ -97,7 +99,7 @@ function generate_webview(pred_result) {
                 <div class='card shadow-sm'>
                     <img class='card-img-top' width='100%' height='225' style='object-fit: contain' src="${url}"></img>
                     <div class='card-body'>
-                        <p class='card-text'>${f.name}</p>
+                        <p class='card-text'>File: ${f.name}<br/>Conf: ${pred['pred']['conf'].toLocaleString('zh-TW', {style: 'percent'})}</p>
                     </div>
                 </div>
             </div>
@@ -108,6 +110,22 @@ function generate_webview(pred_result) {
     }
 
     display.innerHTML = gen_html;
+}
+
+function display_error(e) {
+    let display = document.getElementById('img-display');
+    display.innerHTML = '<h2>Predict Error</h2>';
+}
+
+function display_loading() {
+    let display = document.getElementById('img-display');
+    display.innerHTML = `
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+    `;
 }
 
 
