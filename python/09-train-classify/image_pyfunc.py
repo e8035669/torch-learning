@@ -82,12 +82,13 @@ class PytorchClassifierWrapper:
         print(x.shape)
 
         with torch.no_grad():
+            x = x.to(self.device)
             y = self.model(x)
             y = F.softmax(y, 1)
             conf, cls = y.max(1)
 
-        conf = conf.numpy()
-        cls = cls.numpy()
+        conf = conf.cpu().numpy()
+        cls = cls.cpu().numpy()
         cls_name = [ self.labels[i] if i < len(self.labels) else "" for i in cls]
 
         result = [{
