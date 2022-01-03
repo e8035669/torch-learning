@@ -1,7 +1,11 @@
 from io import BytesIO
 import os
+import sys
 import base64
 import yaml
+import logging
+import json
+from datetime import datetime
 import torch
 import torch.nn.functional as F
 import torchvision
@@ -14,6 +18,12 @@ import mlflow.keras
 from mlflow.utils import PYTHON_VERSION
 from mlflow.utils.file_utils import TempDir
 from mlflow.utils.environment import _mlflow_conda_env
+
+log_fmt = '"%(asctime)s", "%(levelname)s", "%(name)s", "%(message)s"'
+log_path = './log/'
+os.makedirs(log_path, exist_ok=True)
+logging.basicConfig(filename=os.path.join(log_path, 'log.csv'), format=log_fmt, level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def get_pytorch_env_patch():
     e = mlflow.pytorch.get_default_conda_env()
@@ -59,6 +69,23 @@ def load_image(img_data: bytes):
         img.load()
     return img
 
+def save_images(path, images):
+    try:
+        for i, img in enumerate(images):
+            p = os.path.join(path, 'img{0:03d}.jpg'.format(i))
+            with open(p, 'wb') as f:
+                f.write(img)
+    except Exception as e:
+        logger.exception(e)
+    pass
+
+def save_json(path, result):
+    try:
+        p = os.path.join(path, 'prediction.json')
+        with open(p, 'w') as f:
+            json.dump(result, f, indent=4)
+    except Exception as e:
+        logger.exception(e)
 
 class PytorchClassifierWrapper:
     def __init__(self, model, device, labels, dims, batch_limit):
@@ -82,10 +109,18 @@ class PytorchClassifierWrapper:
 
     def predict(self, data: pd.DataFrame):
         data = data.values.reshape(-1)
-        data = [load_image(base64.decodebytes(bytearray(img, encoding='utf-8'))) for img in data]
+        data = [base64.decodebytes(bytearray(img, encoding='utf-8')) for img in data]
+
+        current_time = datetime.now().strftime('%y_%m_%d_%H_%M_%S')
+        save_path = os.path.join(log_path, current_time)
+        os.makedirs(save_path, exist_ok=True)
+        save_images(save_path, data)
+
+        data = [load_image(img_bytes) for img_bytes in data]
         data = torch.cat([torch.unsqueeze(self.transforms(img), 0) for img in data])
         chunks = torch.split(data, self.batch_limit, 0)
         print(data.shape)
+        logger.info("got %d images", data.shape[0])
 
         confidences = []
         classes = []
@@ -107,12 +142,15 @@ class PytorchClassifierWrapper:
         cls_name = [ self.labels[i] if i < len(self.labels) else "" for i in classes]
 
         result = [{
-            "conf": c,
-            "cls": l,
+            "conf": c.item(),
+            "cls": l.item(),
             "cls_name": n
         } for c, l, n in zip(confidences, classes, cls_name)]
 
-        print(result)
+        save_json(save_path, result)
+
+        # print(result)
+        logger.info("return %d results", len(result))
 
         return result
 
