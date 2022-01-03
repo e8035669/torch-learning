@@ -19,10 +19,7 @@ from mlflow.utils import PYTHON_VERSION
 from mlflow.utils.file_utils import TempDir
 from mlflow.utils.environment import _mlflow_conda_env
 
-log_fmt = '"%(asctime)s", "%(levelname)s", "%(name)s", "%(message)s"'
 log_path = './log/'
-os.makedirs(log_path, exist_ok=True)
-logging.basicConfig(filename=os.path.join(log_path, 'log.csv'), format=log_fmt, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def get_pytorch_env_patch():
@@ -149,7 +146,7 @@ class PytorchClassifierWrapper:
 
         save_json(save_path, result)
 
-        # print(result)
+        print(result)
         logger.info("return %d results", len(result))
 
         return result
@@ -174,6 +171,7 @@ def _load_pyfunc(path):
     net = mlflow.pytorch.load_model(model_path, map_location=device)
     net.eval()
     print(net)
+    logger.debug("Here~~~~~~~~~~~~~~~")
 
     return PytorchClassifierWrapper(net, device, labels, dims, batch_limit)
 
