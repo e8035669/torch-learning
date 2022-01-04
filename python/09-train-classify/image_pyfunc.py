@@ -5,6 +5,8 @@ import base64
 import yaml
 import logging
 import json
+import binascii
+import random
 from datetime import datetime
 import torch
 import torch.nn.functional as F
@@ -19,7 +21,10 @@ from mlflow.utils import PYTHON_VERSION
 from mlflow.utils.file_utils import TempDir
 from mlflow.utils.environment import _mlflow_conda_env
 
+log_fmt = '"%(asctime)s", "%(levelname)s", "%(name)s", "%(message)s"'
 log_path = './log/'
+os.makedirs(log_path, exist_ok=True)
+logging.basicConfig(filename=os.path.join(log_path, 'log.csv'), format=log_fmt, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def get_pytorch_env_patch():
@@ -59,6 +64,10 @@ def save_pytorch_model(pytorch_model, artifact_path, image_dims, domain, batch_l
             data_path=data_path,
             conda_env=conda_env
         )
+def get_random_hex(n: int):
+    v = bytes([random.getrandbits(8) for _ in range(n)])
+    s = binascii.b2a_hex(v).decode()
+    return s
 
 def load_image(img_data: bytes):
     with BytesIO(img_data) as fd:
@@ -108,8 +117,8 @@ class PytorchClassifierWrapper:
         data = data.values.reshape(-1)
         data = [base64.decodebytes(bytearray(img, encoding='utf-8')) for img in data]
 
-        current_time = datetime.now().strftime('%y_%m_%d_%H_%M_%S')
-        save_path = os.path.join(log_path, current_time)
+        current_time = datetime.now().strftime('%y_%m_%d_%H_%M_%S_%f')
+        save_path = os.path.join(log_path, current_time + '_' + get_random_hex(3))
         os.makedirs(save_path, exist_ok=True)
         save_images(save_path, data)
 
@@ -146,7 +155,7 @@ class PytorchClassifierWrapper:
 
         save_json(save_path, result)
 
-        print(result)
+        # print(result)
         logger.info("return %d results", len(result))
 
         return result
@@ -171,7 +180,6 @@ def _load_pyfunc(path):
     net = mlflow.pytorch.load_model(model_path, map_location=device)
     net.eval()
     print(net)
-    logger.debug("Here~~~~~~~~~~~~~~~")
 
     return PytorchClassifierWrapper(net, device, labels, dims, batch_limit)
 
