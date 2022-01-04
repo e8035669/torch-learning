@@ -12,4 +12,4 @@ if [ -e /dev/nvidia0 ]; then
     echo "with gpu"
 fi
 
-sudo docker run -it ${gpu} -v ${PWD}/model:/app/model -p 5000:5000 continuumio/miniconda3 bash -c "${p_export} pip install mlflow && mlflow models serve -m /app/model -p 5000 -h 0.0.0.0"
+sudo docker run -it ${gpu} -v ${PWD}/model:/app/model -v ${PWD}/log:/log -p 5000:5000 --name "model-deploy" continuumio/miniconda3 bash -c "${p_export} pip install mlflow && mlflow models serve -m /app/model -p 5000 -h 0.0.0.0"
